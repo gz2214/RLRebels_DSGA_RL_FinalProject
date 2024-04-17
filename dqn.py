@@ -85,7 +85,7 @@ class Agent():
         self.gamma = 0.99
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
         self.loss_fn = nn.MSELoss()
-        self.epsilon = 0.1
+        self.epsilon = 1.0
         self.epsilon_decay = 0.99
         self.epsilon_minimum = 0.05
 
