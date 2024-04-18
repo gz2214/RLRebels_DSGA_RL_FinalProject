@@ -24,6 +24,8 @@ def main():
     target_update_freq = 2
 
     min_loss = np.inf
+    episode_rewards=[]
+    episode_loss=[]
 
     for episode in range(num_episodes):
         print("episode:", episode)
@@ -31,7 +33,7 @@ def main():
         # state = preProcess(state)  # Preprocess the initial state
         done = False
         episode_reward = 0
-        
+        loss=[]
         while not done:
             # print("while not done:", state.shape)
             action = agent.select_action(state)
@@ -50,14 +52,29 @@ def main():
                 agent.update_target_model()
 
             if cur_loss < min_loss:
-                torch.save(agent.model.state_dict(), 'cache_model.pth')
+                torch.save(agent.model, 'cache_model.pth')
+
+            loss.append(cur_loss)
         
+        loss=[l for l in loss if l !=float('inf')]
+        mean_loss=sum(loss)/len(loss)
         if episode % 2 == 0:
-            torch.save(agent.model, 'pretrained_model.pth')
-
-
-
+            torch.save(agent.model.state_dict(), 'pretrained_model.pth')
         print(f"Episode {episode + 1}, Reward: {episode_reward}")
+
+        episode_rewards.append(episode_reward)
+        episode_loss.append(mean_loss)
+    
+    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+
+    axs[0].plot(range(num_episodes),episode_rewards)
+    axs[0].set_xlabel('Episode')
+    axs[0].set_ylabel('Total Reward')
+
+    axs[1].plot(range(num_episodes),episode_loss)
+    axs[1].set_xlabel('Episode')
+    axs[0].set_ylabel('Average Loss')
+    plt.savefig('subplots.png')
 
 if __name__=="__main__":
     main()
