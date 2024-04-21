@@ -73,7 +73,7 @@ def main():
 
     axs[1].plot(range(num_episodes),episode_loss)
     axs[1].set_xlabel('Episode')
-    axs[0].set_ylabel('Average Loss')
+    axs[1].set_ylabel('Average Loss')
     plt.savefig('subplots.png')
 
 if __name__=="__main__":
