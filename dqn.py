@@ -1,4 +1,4 @@
-total_stepsimport gymnasium as gym
+import gymnasium as gym
 import torch
 import torch.nn as nn
 import torch.optim as optim
