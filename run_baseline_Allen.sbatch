@@ -20,5 +20,4 @@ conda activate rl;
 #export PATH=/gpfs/scratch/wz727/miniconda3/bin:$PATH;
 #echo "Which Python: $(which python)"
 #python -c "import sys; print(sys.path)"
-python train.py ALE/Pong-v5 20000
-
+python3 train.py "$1" "$2"
