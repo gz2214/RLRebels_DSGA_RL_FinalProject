@@ -27,7 +27,7 @@ def main(atari_game, num_episodes):
     agent = Agent(env, device)
 
     num_episodes = num_episodes
-    batch_size = 1
+    batch_size = 32
     target_update_freq = 100
 
     min_loss = np.inf
@@ -42,7 +42,11 @@ def main(atari_game, num_episodes):
         done = False
         episode_reward = 0
         loss=[]
+        step_per_ep = 0
+        total_steps = 0
         while not done:
+            step_per_ep += 1
+            total_steps += 1
             # print("while not done:", state.shape)
             action = agent.select_action(state)
             # print("action:", action)
@@ -57,16 +61,22 @@ def main(atari_game, num_episodes):
             cur_loss, _ = agent.train(batch_size, target_update_freq)
 
             loss.append(cur_loss)
+            
+            if total_steps % 1000 == 0:
+                agent.update_target_model
         
         loss=[l for l in loss if l !=float('inf')]
         mean_loss=sum(loss)/len(loss)
         
+        if episode % 5 == 0:
+            agent.update_epsilon()
+        
         if mean_loss < min_loss:
             torch.save(agent.model, f'pretrained_model_{atari_game}.pth')
         
-        if episode % target_update_freq == 0:
+        if episode % 100 == 0:
             torch.save(agent.model.state_dict(), f'cache_model_{atari_game}.pth')
-        print(f"Episode {episode + 1}, Reward: {episode_reward}")
+        print(f"Episode {episode + 1}, Reward: {episode_reward}, Mean Loss: {mean_loss}, Number of Steps: {step_per_ep}")
         if episode == 0:
             print(f'each episode takes approx. {time.time()-start} seconds')
 
