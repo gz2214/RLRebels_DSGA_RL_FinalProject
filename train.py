@@ -20,7 +20,7 @@ def main(atari_game, num_episodes):
 
     # Setup environment
     env = gym.make(atari_game, obs_type="grayscale")
-    atari_game = atai_game.replace('/', '_')
+    atari_game = atari_game.replace('/', '_')
     num_actions = env.action_space.n
     num_observations = env.observation_space.shape[0] 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
