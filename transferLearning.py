@@ -17,10 +17,15 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
     num_actions = env.action_space.n
     num_observations = env.observation_space.shape[0] 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+## freeze other layers parameters so they do not change
+    pre_trained_model=torch.load(pretrained_model_path)
+    for p in pre_trained_model.parameters():
+        p.requires_grad=False
 ## add layer to pretrain model 
+    pre_trained_model.breakout_output_layer=nn.Linear(in_features=512, out_features=num_actions)
+## add model to agent
     agent = dqn.Agent(env, device)
-    agent.model=torch.load(pretrained_model_path)
-    agent.model.breakout_output_layer=nn.Linear(in_features=512, out_features=num_actions)
+    agent.model=pre_trained_model
 
     num_episodes = num_episodes
     batch_size = 1
