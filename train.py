@@ -16,14 +16,15 @@ warnings.filterwarnings("ignore")
 def main(atari_game, num_episodes):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f'which device: {device}')
     print(f'gpu count: {torch.cuda.device_count()}')
+    
 
     # Setup environment
     env = gym.make(atari_game, obs_type="grayscale")
     atari_game = atari_game.replace('/', '_')
     num_actions = env.action_space.n
     num_observations = env.observation_space.shape[0] 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     agent = Agent(env, device)
 
     num_episodes = num_episodes
@@ -33,17 +34,19 @@ def main(atari_game, num_episodes):
     min_loss = np.inf
     episode_rewards=[]
     episode_loss=[]
-    start = time.time()
+
+    total_steps = 0
 
     for episode in range(num_episodes):
         #print("episode:", episode)
         state = env.reset()[0]
+        start = time.time()
         # state = preProcess(state)  # Preprocess the initial state
         done = False
         episode_reward = 0
         loss=[]
         step_per_ep = 0
-        total_steps = 0
+
         while not done:
             step_per_ep += 1
             total_steps += 1

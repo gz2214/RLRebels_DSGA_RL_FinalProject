@@ -57,15 +57,48 @@ class DQN(nn.Module):
 
         return x
     
-class ReplayBuffer:
-    def __init__(self, capacity=10000):
-        self.buffer = deque(maxlen=capacity)
-    
+class ReplayBuffer():
+    def __init__(self, device, capacity=10000):
+        self.buffer_state = torch.empty((0,), dtype=torch.float32, device=device)
+        self.buffer_action = torch.empty((0,), dtype=torch.float32, device=device)
+        self.buffer_reward = torch.empty((0,), dtype=torch.float32, device=device)
+        self.buffer_next_state = torch.empty((0,), dtype=torch.float32, device=device)
+        self.buffer_done = torch.empty((0,), dtype=torch.float32, device=device)
+        self.capacity = capacity
+        self.device = device
+
     def add(self, state, action, reward, next_state, done):
-        self.buffer.append((state, action, reward, next_state, done))
-    
+        if len(self.buffer_state) >= self.capacity:
+            # Remove the oldest data if at capacity
+            self.buffer_state.pop(0)
+            self.buffer_action.pop(0)
+            self.buffer_reward.pop(0)
+            self.buffer_next_state.pop(0)
+            self.buffer_done.pop(0)
+
+        # Add new elements to the buffers
+        self.buffer_state = torch.cat((self.buffer_state, torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)), dim=0)
+        self.buffer_action = torch.cat((self.buffer_action, torch.tensor([action], dtype=torch.float32, device=device)), dim=0)
+        self.buffer_reward = torch.cat((self.buffer_reward, torch.tensor([reward], dtype=torch.float32, device=device)), dim=0)
+        self.buffer_next_state = torch.cat((self.buffer_next_state, torch.tensor(next_state, dtype=torch.float32, device=device).unsqueeze(0)), dim=0)
+        self.buffer_done = torch.cat((self.buffer_done, torch.tensor([done], dtype=torch.float32, device=device)), dim=0)
+
     def sample(self, batch_size):
-        return random.sample(self.buffer, batch_size)
+        # Make sure we do not sample more elements than we have
+        max_index = self.buffer_state.size()[0]
+        indices = torch.randint(0, max_index, (batch_size,), device=self.device)
+
+        # Retrieve samples by indexed selection
+        states = torch.stack([self.buffer_state[i] for i in indices])
+        actions = torch.stack([self.buffer_action[i] for i in indices])
+        rewards = torch.stack([self.buffer_reward[i] for i in indices])
+        next_states = torch.stack([self.buffer_next_state[i] for i in indices])
+        dones = torch.stack([self.buffer_done[i] for i in indices])
+
+        return states, actions, rewards, next_states, dones
+
+    def __len__(self):
+        return self.buffer_state.size()[0]
     
 
 class Agent():
@@ -80,7 +113,7 @@ class Agent():
         self.target_model.load_state_dict(self.model.state_dict())
 
         # buffer and optimizer setup 
-        self.buffer = ReplayBuffer()
+        self.buffer = ReplayBuffer(device)
         self.alpha = 0.0001
         self.gamma = 0.99
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
@@ -107,27 +140,17 @@ class Agent():
     def train(self, batch_size, target_update_freq):
         # print("len_buffer:", len(self.buffer.buffer))
         # print("target_update_freq:", target_update_freq)
-        if len(self.buffer.buffer) < target_update_freq:
+        if self.buffer.__len__() < target_update_freq:
             return np.inf, 0 
         
-        samples = self.buffer.sample(batch_size)
-        state, action, reward, next_state, done = [list(item) for item in zip(*samples)]
+        batch_state, batch_action, batch_reward, batch_next_state, batch_done = self.buffer.sample(batch_size)
+#         print(f'sample device: {batch_state.device} with size {batch_state.size()}')
 
-        # print("state", state)
-        # print("State shape:", state[0].shape) 
-        # Convert batches to tensors
-        # print("state:", state)
-        # print("action:", action)
-        # print("reward:", reward)
-        # print("next_state:", next_state)
-        batch_state = torch.tensor(state, dtype=torch.float32, device=self.device)
-        # batch_state = torch.tensor(state, dtype=torch.float32, device=self.device)
-        batch_action = torch.tensor(action, device=self.device)
-        batch_reward = torch.tensor(reward, dtype=torch.float32, device=self.device)
-        batch_next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device)
-        batch_done = torch.tensor(done, dtype=torch.float32, device=self.device)
+        # print("batch_state", state)
+#         print("State shape:", batch_state.shape) 
+#         print("action shape:", batch_action.shape) 
+#         print("reward shape:", batch_reward.shape) 
 
-        # print("model batch_state:", batch_state.size())
         # Calculate current Q-values
         q_values = self.model(batch_state)
 
