@@ -85,6 +85,9 @@ def main(atari_game, model_name, num_episodes):
 
         episode_rewards.append(episode_reward)
         episode_loss.append(mean_loss)
+
+        np.save(f'episode_rewards_{atari_game}_{model_name}.npy', np.array(episode_rewards))
+        np.save(f'episode_loss_{atari_game}_{model_name}.npy', np.array(episode_loss))
         
     print('training process done!')
 
