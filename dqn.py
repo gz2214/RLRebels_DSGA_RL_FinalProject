@@ -6,53 +6,23 @@ import numpy as np
 import random
 from collections import deque
 import cv2
+import sys
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class DQN(nn.Module):
-    def __init__(self, num_actions):
-        super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=4, padding =1)
-        self.bn1 = nn.BatchNorm2d(32)
+class DQN_MLP(nn.Module):
+    def __init__(self, input_dim, num_actions):
+        super(DQN_MLP, self).__init__()
+        self.fc1 = nn.Linear(input_dim, 64, bias=True)
         self.relu1 = nn.ReLU()
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding =1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.relu2 = nn.ReLU()
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(64)
-        self.relu3 = nn.ReLU()
-        self.fc1 = nn.Linear(34560, 512)
-        self.relu4 = nn.ReLU()
-        self.fc2 = nn.Linear(512, num_actions)
+        self.fc2 = nn.Linear(64, num_actions, bias=True)
 
 
     def forward(self, x):
         x.to(device)
-        x = x.unsqueeze(1)
-        # print("x shape:", x.shape)
-
-        # block 1
-        x = self.conv1(x)
-        # print("conv1 shape:", x.shape)
-        x = self.bn1(x)
-        x = self.relu1(x)
-        # print("block 1", x.shape)
-
-        # block 2
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu2(x)
-        # print("block 2", x.shape)
-
-        # block 3
-        x = self.conv3(x)
-        x = self.bn3(x)
-        x = self.relu3(x)
-        # print("block 3", x.shape)
-
-        x = x.reshape(x.size(0), -1)
+        x = x.view(x.size(0), -1) # Flatten the input
         x = self.fc1(x)
-        x = self.relu4(x)
+        x = self.relu1(x)
         x = self.fc2(x)
 
         return x
@@ -102,15 +72,27 @@ class ReplayBuffer():
     
 
 class Agent():
-    def __init__(self, env, device):
+    def __init__(self, env, model_name, device):
         self.env = env
         self.num_actions = self.env.action_space.n
+        self.num_observations = self.env.observation_space.shape
         self.device = device
 
         # model setup
-        self.model = DQN(self.num_actions).to(device)
-        self.target_model = DQN(self.num_actions).to(device)
+        if model_name == "DQN_MLP":
+            self.model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
+            self.target_model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
+        # elif model_name == 'DQN_CONV':
+        #     model = DQN_CONV(num_actions).to(device)
+        #     target_model = DQN_CONV(num_actions).to(device)
+        # elif model_name = 'DQN_CONVLSTM':
+        #     model = DQN_CONVLSTM(num_actions).to(device)
+        #     target_model = DQN_CONVLSTM(num_actions).to(device)
+
         self.target_model.load_state_dict(self.model.state_dict())
+
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        print("Total number of parameters: ", total_params)
 
         # buffer and optimizer setup 
         self.buffer = ReplayBuffer(device)

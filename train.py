@@ -6,14 +6,14 @@ import numpy as np
 import random
 from collections import deque
 import cv2
-from dqn import DQN, Agent
+from dqn import DQN_MLP, DQN_CONV, DQN_CONVLSTM, Agent
 from matplotlib import pyplot as plt
 import time
 import sys
 import warnings
 warnings.filterwarnings("ignore")
 
-def main(atari_game, num_episodes):
+def main(atari_game, model_name, num_episodes):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'which device: {device}')
@@ -24,11 +24,11 @@ def main(atari_game, num_episodes):
     env = gym.make(atari_game, obs_type="grayscale")
     atari_game = atari_game.replace('/', '_')
     num_actions = env.action_space.n
-    num_observations = env.observation_space.shape[0] 
-    agent = Agent(env, device)
+
+    agent = Agent(env, model_name, device)
 
     num_episodes = num_episodes
-    batch_size = 32
+    batch_size = 1
     target_update_freq = 100
 
     min_loss = np.inf
@@ -65,7 +65,7 @@ def main(atari_game, num_episodes):
 
             loss.append(cur_loss)
             
-            if total_steps % 1000 == 0:
+            if total_steps % 10000 == 0:
                 agent.update_target_model
         
         loss=[l for l in loss if l !=float('inf')]
@@ -95,7 +95,7 @@ def main(atari_game, num_episodes):
 # Store cumulative sums of array in cum_sum array
     cum_sum_reward=np.cumsum(episode_rewards)
 # Loop through the array elements
-    while i <= len(episode_reward):
+    while i <= len(episode_rewards):
 # Calculate the cumulative average by dividing cumulative sum by number of elements till that position
         window_average_reward = round(cum_sum_reward[i-1] / i, 2)
 # Store the cumulative average of
@@ -143,11 +143,16 @@ def main(atari_game, num_episodes):
     
 
 if __name__=="__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python train.py atari_game num_episodes")
+    if len(sys.argv) != 4:
+        print("Usage: python train.py atari_game model_name num_episodes")
+        sys.exit(1)
+    
+    if sys.argv[2] not in ["DQN_MLP", "DQN_CONV", "DQN_CONVLSTM"]:
+        print("Model not recognized, please use [DQN_MLP, DQN_CONV, DQN_CONVLSTM] as model_name")
         sys.exit(1)
 
     # Parse command-line arguments
     atari_game = sys.argv[1]
-    num_episodes = int(sys.argv[2])
-    main(atari_game, num_episodes)
+    model_name = sys.argv[2]
+    num_episodes = int(sys.argv[3])
+    main(atari_game, model_name, num_episodes)
