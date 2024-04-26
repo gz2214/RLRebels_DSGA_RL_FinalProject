@@ -75,10 +75,10 @@ def main(atari_game, model_name, num_episodes):
             agent.update_epsilon()
         
         if mean_loss < min_loss:
-            torch.save(agent.model, f'pretrained_model_{atari_game}.pth')
+            torch.save(agent.model, f'pretrained_model_{atari_game}_{model_name}.pth')
         
         if episode % 100 == 0:
-            torch.save(agent.model.state_dict(), f'cache_model_{atari_game}.pth')
+            torch.save(agent.model.state_dict(), f'cache_model_{atari_game}_{model_name}.pth')
         print(f"Episode {episode + 1}, Reward: {episode_reward}, Mean Loss: {mean_loss}, Number of Steps: {step_per_ep}")
         if episode == 0:
             print(f'each episode takes approx. {time.time()-start} seconds')
@@ -139,7 +139,7 @@ def main(atari_game, model_name, num_episodes):
     plt.plot(range(num_episodes),episode_rewards)
     plt.xlabel('Episode')
     plt.ylabel('Total Reward (3 Episode Average)')
-    plt.savefig(f'model_reward_{atari_game}.png')
+    plt.savefig(f'model_reward_{atari_game}_{model_name}.png')
     
 
 if __name__=="__main__":
