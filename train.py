@@ -134,6 +134,14 @@ def main(atari_game, num_episodes):
     axs[1].set_ylabel('Average Loss (3 Episode Average)')
     plt.savefig(f'subplots_{atari_game}.png')
 
+    plt.close()
+
+    plt.plot(range(num_episodes),episode_rewards)
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward (3 Episode Average)')
+    plt.savefig(f'model_reward_{atari_game}.png')
+    
+
 if __name__=="__main__":
     if len(sys.argv) != 3:
         print("Usage: python train.py atari_game num_episodes")
