@@ -39,16 +39,16 @@ class DQN_CONV(nn.Module):
     def forward(self, x):
         x.to(device)
         x = x.unsqueeze(1)
-        print("x shape:", x.shape)
+        # print("x shape:", x.shape)
 
         # block 1
         x = self.conv1(x)
-        print("conv1 shape:", x.shape)
+        # print("conv1 shape:", x.shape)
 
         x = x.reshape(x.size(0), -1)
-        print("input to fc1:", x.shape)
+        # print("input to fc1:", x.shape)
         x = self.fc1(x)
-        print("output fc1", x.shape)
+        # print("output fc1", x.shape)
 
         return x
 
