@@ -6,7 +6,7 @@ import numpy as np
 import random
 from collections import deque
 import cv2
-from dqn import DQN_MLP, DQN_CONV, DQN_CONVLSTM, Agent
+from dqn import DQN_MLP, DQN_CONV, Agent
 from matplotlib import pyplot as plt
 import time
 import sys
