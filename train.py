@@ -87,16 +87,51 @@ def main(atari_game, num_episodes):
         episode_loss.append(mean_loss)
         
     print('training process done!')
+
+    i=1
+    
+# Initialize an empty list to store cumulative moving averages
+    moving_reward_averages = []
+# Store cumulative sums of array in cum_sum array
+    cum_sum_reward=np.cumsum(episode_rewards)
+# Loop through the array elements
+    while i <= len(episode_reward):
+# Calculate the cumulative average by dividing cumulative sum by number of elements till that position
+        window_average_reward = round(cum_sum_reward[i-1] / i, 2)
+# Store the cumulative average of
+# current window in moving average list
+        moving_reward_averages.append(window_average_reward)
+# Shift window to right by one position
+        i += 1
+
+    i=1
+# Initialize an empty list to store cumulative moving averages
+    moving_loss_averages = []
+# Store cumulative sums of array in cum_sum array
+    cum_sum_loss=np.cumsum(episode_loss)
+# Loop through the array elements
+    while i <= len(episode_loss):
+# Calculate the cumulative average by dividing cumulative sum by number of elements till that position
+        window_average_loss = round(cum_sum_loss[i-1] / i, 2)
+# Store the cumulative average of
+# current window in moving average list
+        moving_loss_averages.append(window_average_loss)
+# Shift window to right by one position
+        i += 1
+
+
+
+
     
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
-    axs[0].plot(range(num_episodes),episode_rewards)
+    axs[0].plot(range(num_episodes),moving_reward_averages)
     axs[0].set_xlabel('Episode')
-    axs[0].set_ylabel('Total Reward')
+    axs[0].set_ylabel('Total Reward (3 Episode Average)')
 
-    axs[1].plot(range(num_episodes),episode_loss)
+    axs[1].plot(range(num_episodes),moving_loss_averages)
     axs[1].set_xlabel('Episode')
-    axs[1].set_ylabel('Average Loss')
+    axs[1].set_ylabel('Average Loss (3 Episode Average)')
     plt.savefig(f'subplots_{atari_game}.png')
 
 if __name__=="__main__":
