@@ -106,7 +106,24 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
         i += 1
 
 
+    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+
+    axs[0].plot(range(num_episodes),moving_reward_averages)
+    axs[0].set_xlabel('Episode')
+    axs[0].set_ylabel('Total Reward (3 Episode Average)')
+
+    axs[1].plot(range(num_episodes),moving_loss_averages)
+    axs[1].set_xlabel('Episode')
+    axs[1].set_ylabel('Average Loss (3 Episode Average)')
+
     plt.savefig(f'transfer_model_subplots_{atari_game_2}.png')
+
+    plt.close()
+
+    plt.plot(range(num_episodes),episode_rewards)
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward (3 Episode Average)')
+    plt.savefig(f'transfer_model_rewards_{atari_game_2}.png')
 
     
 if __name__=="__main__":
