@@ -26,7 +26,32 @@ class DQN_MLP(nn.Module):
         x = self.fc2(x)
 
         return x
-    
+        
+class DQN_CONV(nn.Module):
+    def _init_(self, num_actions):
+        super(DQN_CONV, self)._init_()
+        self.conv1 = nn.Conv2d(1, 1, kernel_size=12, stride = 7)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu1 = nn.ReLU()
+        self.fc1 = nn.Linear(638, num_actions)
+
+
+    def forward(self, x):
+        x.to(device)
+        x = x.unsqueeze(1)
+        print("x shape:", x.shape)
+
+        # block 1
+        x = self.conv1(x)
+        print("conv1 shape:", x.shape)
+
+        x = x.reshape(x.size(0), -1)
+        print("input to fc1:", x.shape)
+        x = self.fc1(x)
+        print("output fc1", x.shape)
+
+        return x
+
 class ReplayBuffer():
     def __init__(self, device, capacity=10000):
         self.buffer_state = torch.empty((0,), dtype=torch.float32, device=device)
