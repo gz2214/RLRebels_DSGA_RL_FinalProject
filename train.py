@@ -85,7 +85,7 @@ def main(atari_game, model_name, num_episodes):
 
         episode_rewards.append(episode_reward)
         episode_loss.append(mean_loss)
-
+        
         np.save(f'episode_rewards_{atari_game}_{model_name}.npy', np.array(episode_rewards))
         np.save(f'episode_loss_{atari_game}_{model_name}.npy', np.array(episode_loss))
         
@@ -135,7 +135,7 @@ def main(atari_game, model_name, num_episodes):
     axs[1].plot(range(num_episodes),moving_loss_averages)
     axs[1].set_xlabel('Episode')
     axs[1].set_ylabel('Average Loss (3 Episode Average)')
-    plt.savefig(f'subplots_{atari_game}.png')
+    plt.savefig(f'subplots_{atari_game}_{model_name}.png')
 
     plt.close()
 

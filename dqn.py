@@ -65,11 +65,11 @@ class ReplayBuffer():
     def add(self, state, action, reward, next_state, done):
         if len(self.buffer_state) >= self.capacity:
             # Remove the oldest data if at capacity
-            self.buffer_state.pop(0)
-            self.buffer_action.pop(0)
-            self.buffer_reward.pop(0)
-            self.buffer_next_state.pop(0)
-            self.buffer_done.pop(0)
+            self.buffer_state = self.buffer_state[1:]
+            self.buffer_action = self.buffer_action[1:]
+            self.buffer_reward = self.buffer_reward[1:]
+            self.buffer_next_state = self.buffer_next_state[1:]
+            self.buffer_done = self.buffer_done[1:]
 
         # Add new elements to the buffers
         self.buffer_state = torch.cat((self.buffer_state, torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)), dim=0)
