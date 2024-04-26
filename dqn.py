@@ -13,9 +13,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class DQN_MLP(nn.Module):
     def __init__(self, input_dim, num_actions):
         super(DQN_MLP, self).__init__()
-        self.fc1 = nn.Linear(input_dim, 64, bias=True)
+        self.fc1 = nn.Linear(input_dim, num_actions, bias=True)
         self.relu1 = nn.ReLU()
-        self.fc2 = nn.Linear(64, num_actions, bias=True)
+        self.fc2 = nn.Linear(num_action, num_actions, bias=True)
 
 
     def forward(self, x):
