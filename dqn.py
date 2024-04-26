@@ -49,8 +49,8 @@ class DQN_CONV(nn.Module):
         print("input to fc1:", x.shape)
         x = self.fc1(x)
         print("output fc1", x.shape)
-        
-        return x
+
+        return x
 
 class ReplayBuffer():
     def __init__(self, device, capacity=10000):
