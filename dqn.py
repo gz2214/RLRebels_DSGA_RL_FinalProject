@@ -108,11 +108,11 @@ class Agent():
             self.model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
             self.target_model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
         elif model_name == 'DQN_CONV':
-            model = DQN_CONV(num_actions).to(device)
-            target_model = DQN_CONV(num_actions).to(device)
+            model = DQN_CONV(self.num_actions).to(device)
+            target_model = DQN_CONV(self.num_actions).to(device)
         # elif model_name = 'DQN_CONVLSTM':
-        #     model = DQN_CONVLSTM(num_actions).to(device)
-        #     target_model = DQN_CONVLSTM(num_actions).to(device)
+        #     model = DQN_CONVLSTM(self.num_actions).to(device)
+        #     target_model = DQN_CONVLSTM(self.num_actions).to(device)
 
         self.target_model.load_state_dict(self.model.state_dict())
 
