@@ -6,7 +6,7 @@ import numpy as np
 import random
 from collections import deque
 import cv2
-from dqn import DQN_MLP, DQN_CONV, Agent
+from dqn import DQN_MLP, DQN_CONV, Agent, prepro
 from matplotlib import pyplot as plt
 import time
 import sys
@@ -71,7 +71,7 @@ def main(atari_game, model_name, num_episodes):
         loss=[l for l in loss if l !=float('inf')]
         mean_loss=sum(loss)/len(loss)
         
-        if episode % 5 == 0:
+        if episode >= 200 and episode % 50 == 0:
             agent.update_epsilon()
         
         if mean_loss < min_loss:

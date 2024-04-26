@@ -10,15 +10,50 @@ import sys
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+def prepro(I, flatten=False):
+    """
+    Preprocesses a 210x160 grayscale frame into an 80x80 2D array or a 6400-element 1D float vector, based on the `flatten` flag.
+    
+    Args:
+        I (numpy array): The input grayscale frame of size 210x160.
+        flatten (bool): If True, the output is flattened into a 1D vector. If False, the output remains a 2D array.
+        
+    Returns:
+        numpy array: The processed frame as a 2D array or 1D vector.
+    """
+    # Crop the image to remove the top and bottom parts that might not contain useful information
+    I = I[:, 35:195, :]  # Crop vertically from 210 to 160, keeping horizontal dimension
+    
+    # Downsample by a factor of 2
+    # Since you want to get from [160, 160] to [80, 80], downsample each dimension by factor of 2
+    I = I[:, ::2, ::2]  # downsample to 80x80
+
+    # Erase background by setting specific color values to 0
+    I[I == 144] = 0  # erase background type 1
+    I[I == 109] = 0  # erase background type 2
+
+    # Set all other non-zero values to 1 (paddles, ball)
+    I[I != 0] = 1
+
+    # Convert to float and optionally flatten
+    I = I.to(dtype=torch.float32)
+    # print("I shape:", I.shape)
+    if flatten:
+        return I.reshape(I.size(0), -1)  # Flatten each frame in the batch
+    else:
+        return I  # Return the 2D tensor if flatten is False
+
 class DQN_MLP(nn.Module):
     def __init__(self, input_dim, num_actions):
         super(DQN_MLP, self).__init__()
-        self.fc1 = nn.Linear(input_dim, num_actions, bias=True)
+        self.fc1 = nn.Linear(input_dim, 256, bias=True)
         self.relu1 = nn.ReLU()
-        self.fc2 = nn.Linear(num_actions, num_actions, bias=True)
+        self.fc2 = nn.Linear(256, num_actions, bias=True)
 
 
     def forward(self, x):
+        x = prepro(x, flatten=True)
+        # print("I shape flatten:", x.shape)
         x.to(device)
         x = x.view(x.size(0), -1) # Flatten the input
         x = self.fc1(x)
@@ -30,15 +65,15 @@ class DQN_MLP(nn.Module):
 class DQN_CONV(nn.Module):
     def __init__(self, num_actions):
         super(DQN_CONV, self).__init__()
-        self.conv1 = nn.Conv2d(1, 1, kernel_size=12, stride = 7)
+        self.conv1 = nn.Conv2d(1, 1, kernel_size=12, stride = 9)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu1 = nn.ReLU()
-        self.fc1 = nn.Linear(638, num_actions)
+        self.fc1 = nn.Linear(64, num_actions)
 
 
     def forward(self, x):
+        x = prepro(x, flatten=False)
         x.to(device)
-        x = x.unsqueeze(1)
         # print("x shape:", x.shape)
 
         # block 1
@@ -105,8 +140,8 @@ class Agent():
 
         # model setup
         if model_name == "DQN_MLP":
-            self.model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
-            self.target_model = DQN_MLP(self.num_observations[0]*self.num_observations[1], self.num_actions).to(device)
+            self.model = DQN_MLP(6400, self.num_actions).to(device)
+            self.target_model = DQN_MLP(6400, self.num_actions).to(device)
         elif model_name == 'DQN_CONV':
             self.model = DQN_CONV(self.num_actions).to(device)
             self.target_model = DQN_CONV(self.num_actions).to(device)
@@ -139,8 +174,8 @@ class Agent():
         else:
             with torch.no_grad():
                 state = torch.tensor(state, dtype=torch.float32, device=self.device)
-                # print('select action state', state.size())
                 state = state.unsqueeze(0)
+                # print('select action state', state.size())
                 q_values = self.model(state)
                 return torch.argmax(q_values)  # Action with the highest Q-value
             
