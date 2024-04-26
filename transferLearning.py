@@ -75,15 +75,37 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
         episode_loss.append(mean_loss)
     print('training process done!')
     
-    fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+    i = 1
+# Initialize an empty list to store cumulative moving averages
+    moving_reward_averages = []
+# Store cumulative sums of array in cum_sum array
+    cum_sum_reward=np.cumsum(episode_rewards)
+# Loop through the array elements
+    while i <= len(episode_reward):
+# Calculate the cumulative average by dividing cumulative sum by number of elements till that position
+        window_average_reward = round(cum_sum_reward[i-1] / i, 2)
+# Store the cumulative average of
+# current window in moving average list
+        moving_reward_averages.append(window_average_reward)
+# Shift window to right by one position
+        i += 1
 
-    axs[0].plot(range(num_episodes),episode_rewards)
-    axs[0].set_xlabel('Episode')
-    axs[0].set_ylabel('Total Reward')
+    i=1
+# Initialize an empty list to store cumulative moving averages
+    moving_loss_averages = []
+# Store cumulative sums of array in cum_sum array
+    cum_sum_loss=np.cumsum(episode_loss)
+# Loop through the array elements
+    while i <= len(episode_loss):
+# Calculate the cumulative average by dividing cumulative sum by number of elements till that position
+        window_average_loss = round(cum_sum_loss[i-1] / i, 2)
+# Store the cumulative average of
+# current window in moving average list
+        moving_loss_averages.append(window_average_loss)
+# Shift window to right by one position
+        i += 1
 
-    axs[1].plot(range(num_episodes),episode_loss)
-    axs[1].set_xlabel('Episode')
-    axs[1].set_ylabel('Average Loss')
+
     plt.savefig(f'transfer_model_subplots_{atari_game_2}.png')
 
     
