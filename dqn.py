@@ -29,7 +29,7 @@ class DQN_MLP(nn.Module):
         
 class DQN_CONV(nn.Module):
     def __init__(self, num_actions):
-        super(DQN_CONV, self)._init_()
+        super(DQN_CONV, self).__init__()
         self.conv1 = nn.Conv2d(1, 1, kernel_size=12, stride = 7)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu1 = nn.ReLU()
