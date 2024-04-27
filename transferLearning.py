@@ -3,30 +3,36 @@ import torch.nn as nn
 import gymnasium as gym
 import torch.optim as optim
 import numpy as np 
-import dqn
+from dqn import DQN_CONV,DQN_MLP,Agent
 import matplotlib.pyplot as plt
 import time
 import sys
 
 def main(pretrained_model_name,atari_game_2,num_episodes):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
     print(f'gpu count: {torch.cuda.device_count()}')
-## set up environment
+    ## set up environment
     env = gym.make(atari_game_2, obs_type="grayscale")
     atari_game_2 = atari_game_2.replace('/', '_')
     num_actions = env.action_space.n
     num_observations = env.observation_space.shape[0] 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-## freeze other layers parameters so they do not change
-    pre_trained_model=torch.load(f'{pretrained_model_name}.pth')
-    in_feat=pre_trained_model.output_shape[-1]
+
+    ## freeze other layers parameters so they do not change
+
+    pre_trained_model=torch.load(f'{pretrained_model_name}.pth',map_location=device)
+    in_feat=pre_trained_model.fc1.out_features
     for p in pre_trained_model.parameters():
         p.requires_grad=False
-## add layer to pretrain model 
-    pre_trained_model.breakout_output_layer=nn.Linear(in_features=in_feat, out_features=num_actions)
-## add model to agent
-    agent = dqn.Agent(env, device)
-    agent.model=pre_trained_model
+    ## add layer to pretrain model 
+    transferLearningLayer=nn.Linear(in_features=in_feat, out_features=num_actions)
+    for param in transferLearningLayer.parameters():
+        param.requires_grad = True
+    ## add model to agent
+    agent = Agent(env,'DQN_MLP',device)
+    agent.model=nn.Sequential(pre_trained_model,transferLearningLayer)
 
     num_episodes = num_episodes
     batch_size = 1
@@ -46,8 +52,9 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
         # state = preProcess(state)  # Preprocess the initial state
         done = False
         episode_reward = 0
-        loss=[]
+        loss1=[]
         step_per_ep = 0
+        episode_steps=[]
 
         while not done:
             step_per_ep += 1
@@ -65,13 +72,13 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
             
             cur_loss, _ = agent.train(batch_size, target_update_freq)
 
-            loss.append(cur_loss)
+            loss1.append(cur_loss)
             
             if total_steps % 10000 == 0:
                 agent.update_target_model
         
-        loss=[l for l in loss if l !=float('inf')]
-        mean_loss=sum(loss)/len(loss)
+        loss1=[l for l in loss1 if l !=float('inf')]
+        mean_loss=sum(loss1)/len(loss1)
         
         if episode >= 200 and episode % 50 == 0:
             agent.update_epsilon()
@@ -87,11 +94,15 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
 
         episode_rewards.append(episode_reward)
         episode_loss.append(mean_loss)
+        episode_steps.append(step_per_ep)
         
         np.save(f'episode_rewards_{atari_game_2}_transferLearning_from_{pretrained_model_name}.npy', np.array(episode_rewards))
         np.save(f'episode_loss_{atari_game_2}_transferLearning_from_{pretrained_model_name}.npy', np.array(episode_loss))
+        np.save(f'episode_steps_{atari_game_2}_transferLearning_from_{pretrained_model_name}.npy', np.array(episode_steps))
         
     print('training process done!')
+
+
     
     i = 1
 # Initialize an empty list to store cumulative moving averages
@@ -99,7 +110,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
 # Store cumulative sums of array in cum_sum array
     cum_sum_reward=np.cumsum(episode_rewards)
 # Loop through the array elements
-    while i <= len(episode_reward):
+    while i <= len(episode_rewards):
 # Calculate the cumulative average by dividing cumulative sum by number of elements till that position
         window_average_reward = round(cum_sum_reward[i-1] / i, 2)
 # Store the cumulative average of
@@ -147,8 +158,8 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
 if __name__=="__main__":
 
     # Parse command-line arguments
-    pretrained_model=sys.argv[0]
-    atari_game_2 = sys.argv[1]
-    num_episodes = int(sys.argv[2])
+    pretrained_model=sys.argv[1]
+    atari_game_2 = sys.argv[2]
+    num_episodes = int(sys.argv[3])
     main(pretrained_model,atari_game_2, num_episodes)
 
