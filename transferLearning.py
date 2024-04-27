@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import time
 import sys
 
-def main(pretrained_model_path,atari_game_2,num_episodes):
+def main(pretrained_model_name,atari_game_2,num_episodes):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'gpu count: {torch.cuda.device_count()}')
 ## set up environment
@@ -18,11 +18,12 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
     num_observations = env.observation_space.shape[0] 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 ## freeze other layers parameters so they do not change
-    pre_trained_model=torch.load(pretrained_model_path)
+    pre_trained_model=torch.load(f'{pretrained_model_name}.pth')
+    in_feat=pre_trained_model.output_shape[-1]
     for p in pre_trained_model.parameters():
         p.requires_grad=False
 ## add layer to pretrain model 
-    pre_trained_model.breakout_output_layer=nn.Linear(in_features=512, out_features=num_actions)
+    pre_trained_model.breakout_output_layer=nn.Linear(in_features=in_feat, out_features=num_actions)
 ## add model to agent
     agent = dqn.Agent(env, device)
     agent.model=pre_trained_model
@@ -36,14 +37,21 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
     episode_loss=[]
     start = time.time()
 
+    total_steps = 0
+
     for episode in range(num_episodes):
         #print("episode:", episode)
         state = env.reset()[0]
+        start = time.time()
         # state = preProcess(state)  # Preprocess the initial state
         done = False
         episode_reward = 0
         loss=[]
+        step_per_ep = 0
+
         while not done:
+            step_per_ep += 1
+            total_steps += 1
             # print("while not done:", state.shape)
             action = agent.select_action(state)
             # print("action:", action)
@@ -58,21 +66,31 @@ def main(pretrained_model_path,atari_game_2,num_episodes):
             cur_loss, _ = agent.train(batch_size, target_update_freq)
 
             loss.append(cur_loss)
+            
+            if total_steps % 10000 == 0:
+                agent.update_target_model
         
         loss=[l for l in loss if l !=float('inf')]
         mean_loss=sum(loss)/len(loss)
         
-        if mean_loss < min_loss:
-            torch.save(agent.model, f'transfered_pretrained_model_{atari_game_2}.pth')
+        if episode >= 200 and episode % 50 == 0:
+            agent.update_epsilon()
         
-        if episode % target_update_freq == 0:
-            torch.save(agent.model.state_dict(), f'transfered_cache_model_{atari_game_2}.pth')
-        print(f"Episode {episode + 1}, Reward: {episode_reward}")
+        if mean_loss < min_loss:
+            torch.save(agent.model, f'transferLearningModel_model_{atari_game_2}_{pretrained_model_name}.pth')
+        
+        if episode % 100 == 0:
+            torch.save(agent.model.state_dict(), f'cache_model_transfer_learning_{atari_game_2}_from_{pretrained_model_name}.pth')
+        print(f"Episode {episode + 1}, Reward: {episode_reward}, Mean Loss: {mean_loss}, Number of Steps: {step_per_ep}")
         if episode == 0:
             print(f'each episode takes approx. {time.time()-start} seconds')
 
         episode_rewards.append(episode_reward)
         episode_loss.append(mean_loss)
+        
+        np.save(f'episode_rewards_{atari_game_2}_transferLearning_from_{pretrained_model_name}.npy', np.array(episode_rewards))
+        np.save(f'episode_loss_{atari_game_2}_transferLearning_from_{pretrained_model_name}.npy', np.array(episode_loss))
+        
     print('training process done!')
     
     i = 1
