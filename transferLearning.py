@@ -41,7 +41,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     min_loss = np.inf
     episode_rewards=[]
     episode_loss=[]
-    start = time.time()
+    start_time = time.time()
 
     total_steps = 0
 
@@ -153,6 +153,13 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     plt.xlabel('Episode')
     plt.ylabel('Total Reward (3 Episode Average)')
     plt.savefig(f'transfer_model_rewards_{atari_game_2}.png')
+
+    end_time = time.time()
+
+# Calculate the elapsed time
+    elapsed_time = end_time - start_time
+
+    print("Elapsed time:", elapsed_time, "seconds")
 
     
 if __name__=="__main__":
