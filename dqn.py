@@ -74,7 +74,8 @@ class DQN_CONV(nn.Module):
     def forward(self, x):
         x = prepro(x, flatten=False)
         x.to(device)
-        # print("x shape:", x.shape)
+        x = x.unsqueeze(1)
+#         print("x shape:", x.shape)
 
         # block 1
         x = self.conv1(x)
@@ -132,7 +133,7 @@ class ReplayBuffer():
     
 
 class Agent():
-    def __init__(self, env, model_name, device):
+    def __init__(self, env, model_name, device, rendering=False):
         self.env = env
         self.num_actions = self.env.action_space.n
         self.num_observations = self.env.observation_space.shape
@@ -160,7 +161,7 @@ class Agent():
         self.gamma = 0.99
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
         self.loss_fn = nn.MSELoss()
-        self.epsilon = 1.0
+        self.epsilon = 1.0 if not rendering else 0.0 # no need for epsilon greedy when rendering game play
         self.epsilon_decay = 0.9
         self.epsilon_minimum = 0.05
 
@@ -175,25 +176,20 @@ class Agent():
             with torch.no_grad():
                 state = torch.tensor(state, dtype=torch.float32, device=self.device)
                 state = state.unsqueeze(0)
-                # print('select action state', state.size())
+#                 print('select action state', state.size())
                 q_values = self.model(state)
                 return torch.argmax(q_values)  # Action with the highest Q-value
             
     def train(self, batch_size, target_update_freq):
         # print("len_buffer:", len(self.buffer.buffer))
         # print("target_update_freq:", target_update_freq)
-        if self.buffer.__len__() < target_update_freq:
-            return np.inf, 0 
+#         if self.buffer.__len__() < 10000:
+#             return np.inf, 0 
         
         batch_state, batch_action, batch_reward, batch_next_state, batch_done = self.buffer.sample(batch_size)
-#         print(f'sample device: {batch_state.device} with size {batch_state.size()}')
-
-        # print("batch_state", state)
-#         print("State shape:", batch_state.shape) 
-#         print("action shape:", batch_action.shape) 
-#         print("reward shape:", batch_reward.shape) 
 
         # Calculate current Q-values
+#         print('batch_states', batch_state.shape)
         q_values = self.model(batch_state)
 
         # print("target batch_state:", batch_state.size())

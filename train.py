@@ -24,20 +24,28 @@ def main(atari_game, model_name, num_episodes):
     env = gym.make(atari_game, obs_type="grayscale")
     atari_game = atari_game.replace('/', '_')
     num_actions = env.action_space.n
+    if 'Pong' in model_name: #Pong has two useless actions assigned as 5 and 6
+        num_actions -= 2
 
     agent = Agent(env, model_name, device)
 
+    # Training Parameters
     num_episodes = num_episodes
-    batch_size = 1
+    batch_size = 32
     target_update_freq = 100
+    warmup_ep = 10
 
     min_loss = np.inf
     episode_rewards=[]
     episode_loss=[]
+    num_steps = []
+    print(torch.cuda.memory_summary())
 
     total_steps = 0
+    
+    print('agent warming up!')
 
-    for episode in range(num_episodes):
+    for episode in range(num_episodes+warmup_ep): # warmup with the first ten episodes
         #print("episode:", episode)
         state = env.reset()[0]
         start = time.time()
@@ -46,6 +54,9 @@ def main(atari_game, model_name, num_episodes):
         episode_reward = 0
         loss=[]
         step_per_ep = 0
+        
+        if episode == warmup_ep:
+            print('start training!')
 
         while not done:
             step_per_ep += 1
@@ -61,35 +72,43 @@ def main(atari_game, model_name, num_episodes):
             state = next_state
             # print("update to new state", state.shape)
             
-            cur_loss, _ = agent.train(batch_size, target_update_freq)
-
-            loss.append(cur_loss)
+            if episode >= warmup_ep:
+                cur_loss, _ = agent.train(batch_size, target_update_freq)
+                loss.append(cur_loss)
             
-            if total_steps % 10000 == 0:
-                agent.update_target_model
+                if total_steps % 10000 == 0:
+                    agent.update_target_model()
+                    torch.cuda.empty_cache()
+            
         
-        loss=[l for l in loss if l !=float('inf')]
-        mean_loss=sum(loss)/len(loss)
+        if episode >= warmup_ep:
+            loss=[l for l in loss if l !=float('inf')]
+            mean_loss=sum(loss)/len(loss)
         
-        if episode >= 200 and episode % 50 == 0:
-            agent.update_epsilon()
-        
-        if mean_loss < min_loss:
-            torch.save(agent.model, f'pretrained_model_{atari_game}_{model_name}.pth')
-        
-        if episode % 100 == 0:
-            torch.save(agent.model.state_dict(), f'cache_model_{atari_game}_{model_name}.pth')
-        print(f"Episode {episode + 1}, Reward: {episode_reward}, Mean Loss: {mean_loss}, Number of Steps: {step_per_ep}")
-        if episode == 0:
-            print(f'each episode takes approx. {time.time()-start} seconds')
+            if episode >= 200 and episode % 50 == 0:
+                agent.update_epsilon()
 
-        episode_rewards.append(episode_reward)
-        episode_loss.append(mean_loss)
+            if mean_loss < min_loss:
+                torch.save(agent.model, f'pretrained_model_{atari_game}_{model_name}_{num_episodes}.pth')
+
+            if episode % 100 == 0:
+                torch.save(agent.model.state_dict(), f'cache_model_{atari_game}_{model_name}_{num_episodes}.pth')
+            print(f"Episode {episode + 1 - warmup_ep}, Reward: {episode_reward}, Mean Loss: {mean_loss}, Number of Steps: {step_per_ep}")
+            
+            num_steps.append(step_per_ep)
+            episode_rewards.append(episode_reward)
+            episode_loss.append(mean_loss)
         
-        np.save(f'episode_rewards_{atari_game}_{model_name}.npy', np.array(episode_rewards))
-        np.save(f'episode_loss_{atari_game}_{model_name}.npy', np.array(episode_loss))
+        if episode == warmup_ep:
+            print(f'each episode takes approx. {time.time()-start} seconds')
         
     print('training process done!')
+    
+    
+
+    np.save(f'episode_rewards_{atari_game}_{model_name}_{num_episodes}.npy', np.array(episode_rewards))
+    np.save(f'episode_loss_{atari_game}_{model_name}_{num_episodes}.npy', np.array(episode_loss))
+    np.save(f'steps_per_ep_{atari_game}_{model_name}_{num_episodes}.npy', np.array(episode_loss))
 
     i=1
     
@@ -135,14 +154,14 @@ def main(atari_game, model_name, num_episodes):
     axs[1].plot(range(num_episodes),moving_loss_averages)
     axs[1].set_xlabel('Episode')
     axs[1].set_ylabel('Average Loss (3 Episode Average)')
-    plt.savefig(f'subplots_{atari_game}_{model_name}.png')
+    plt.savefig(f'subplots_{atari_game}_{model_name}_{num_episodes}.png')
 
     plt.close()
 
     plt.plot(range(num_episodes),episode_rewards)
     plt.xlabel('Episode')
     plt.ylabel('Total Reward (3 Episode Average)')
-    plt.savefig(f'model_reward_{atari_game}_{model_name}.png')
+    plt.savefig(f'model_reward_{atari_game}_{model_name}_{num_episodes}.png')
     
 
 if __name__=="__main__":
