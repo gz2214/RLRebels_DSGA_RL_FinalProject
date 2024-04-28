@@ -162,7 +162,7 @@ class Agent():
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
         self.loss_fn = nn.MSELoss()
         self.epsilon = 1.0 if not rendering else 0.0 # no need for epsilon greedy when rendering game play
-        self.epsilon_decay = 0.9
+        self.epsilon_decay = 0.96
         self.epsilon_minimum = 0.05
 
     def update_target_model(self):
@@ -190,14 +190,14 @@ class Agent():
 
         # Calculate current Q-values
 #         print('batch_states', batch_state.shape)
-        q_values = self.model(batch_state)
+        cur_q_values = self.model(batch_state).gather(1, batch_action.unsqueeze(1).long()).squeeze(1)
 
         # print("target batch_state:", batch_state.size())
         # Calculate next Q-values from target model
         next_q_values = self.target_model(batch_next_state).max(1)[0].detach()
         expected_q_values = batch_reward + (1 - batch_done) * self.gamma * next_q_values
 
-        loss = self.loss_fn(q_values, expected_q_values.unsqueeze(1))
+        loss = self.loss_fn(cur_q_values, expected_q_values.unsqueeze(1))
 
         # Backpropagation
         self.optimizer.zero_grad()
@@ -207,7 +207,7 @@ class Agent():
         # Update epsilon
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_minimum)
 
-        return loss.item(), torch.max(q_values).item()
+        return loss.item(), torch.max(cur_q_values).item()
     
     def store_transition(self, state, action, reward, next_state, done):
         self.buffer.add(state, action, reward, next_state, done)
