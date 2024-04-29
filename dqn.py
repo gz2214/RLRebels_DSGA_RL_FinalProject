@@ -197,7 +197,7 @@ class Agent():
         next_q_values = self.target_model(batch_next_state).max(1)[0].detach()
         expected_q_values = batch_reward + (1 - batch_done) * self.gamma * next_q_values
 
-        loss = self.loss_fn(cur_q_values, expected_q_values.unsqueeze(1))
+        loss = self.loss_fn(cur_q_values, expected_q_values)
 
         # Backpropagation
         self.optimizer.zero_grad()

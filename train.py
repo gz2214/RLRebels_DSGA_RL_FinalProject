@@ -85,7 +85,7 @@ def main(atari_game, model_name, num_episodes):
             loss=[l for l in loss if l !=float('inf')]
             mean_loss=sum(loss)/len(loss)
         
-            if episode >= 200 and episode % 50 == 0:
+            if episode >= 200 and episode % 100 == 0:
                 agent.update_epsilon()
 
             if mean_loss < min_loss:
