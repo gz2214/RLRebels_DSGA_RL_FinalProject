@@ -49,6 +49,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     ## add model to agent
     agent = Agent(env,'DQN_MLP',device)
     agent.model=nn.Sequential(pre_trained_model,transferLearningLayer)
+    agent.model.to("cuda")
 
     num_episodes = num_episodes
     batch_size = 1
