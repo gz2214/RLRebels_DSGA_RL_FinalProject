@@ -9,6 +9,22 @@ import time
 import sys
 
 def main(pretrained_model_name,atari_game_2,num_episodes):
+    """
+    Main function for transfer learning with reinforcement learning using Deep Q-Network (DQN).
+
+    Args:
+        pretrained_model_name (str): Name of the pre-trained model file (without extension).
+        atari_game_2 (str): Name of the Atari game to be used.
+        num_episodes (int): Number of episodes for training.
+
+    Returns:
+        None
+
+    This function initializes the environment, loads a pre-trained model, adds a transfer learning layer,
+    sets up the agent with the combined model, and then proceeds with training over the specified number of episodes.
+    It saves the trained model, episode rewards, and episode losses. Additionally, it plots and saves graphs
+    of cumulative moving averages of rewards and losses over the training episodes.
+    """
     if torch.cuda.is_available():
         device = torch.device('cuda')
     else:
@@ -44,7 +60,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     start_time = time.time()
 
     total_steps = 0
-
+    #train
     for episode in range(num_episodes):
         #print("episode:", episode)
         state = env.reset()[0]
@@ -59,16 +75,13 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
         while not done:
             step_per_ep += 1
             total_steps += 1
-            # print("while not done:", state.shape)
             action = agent.select_action(state)
             # print("action:", action)
             next_state, reward, done, truncated, info = env.step(action)
             # next_state = preProcess(next_state)  # Preprocess the next state
             agent.store_transition(state, action, reward, next_state, done)
-            # print("next state:", next_state.shape)
             episode_reward += reward
             state = next_state
-            # print("update to new state", state.shape)
             
             cur_loss, _ = agent.train(batch_size, target_update_freq)
 
@@ -133,8 +146,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
         moving_loss_averages.append(window_average_loss)
 # Shift window to right by one position
         i += 1
-
-
+#graph results
     fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
     axs[0].plot(range(num_episodes),moving_reward_averages)
