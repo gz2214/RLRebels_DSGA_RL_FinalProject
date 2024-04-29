@@ -3,12 +3,12 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:a100:1
 #SBATCH --mem=50G
-#SBATCH --time 4:00:00
+#SBATCH --time 15:00:00
 #SBATCH --output=dqn_base_pong.out
 #SBATCH --exclude=a100-4003
 #SBATCH --mail-type=ALL
 #SBATCH --partition=a100_dev
-#SBATCH --mail-user=sh7008@nyu.edu
+#SBATCH --mail-user=user_email
 #SBATCH --job-name=dqn_pong
 
 
