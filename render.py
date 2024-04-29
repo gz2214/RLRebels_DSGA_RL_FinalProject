@@ -25,6 +25,8 @@ agent = Agent(env, "DQN_CONV", device, rendering = True)
 
 agent.model = pretrained_model
 
+agent.model.to("cuda")
+
 for counter in range(20):
 
     env.render()
