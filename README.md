@@ -1,6 +1,6 @@
 # RLRebels_DSGA_RL_FinalProject
 
-1. dqn.py
+1. dqn.py <br>
 This script contains all the classes and functions related to the Deep Q-Learning Model and Agent.
 
 2. train.py
