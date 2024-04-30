@@ -21,10 +21,9 @@ env = gym.make("ALE/Breakout-v5", obs_type="grayscale", render_mode="human")
 
 state = env.reset()[0]
 
-agent = Agent(env, "DQN_CONV", device, rendering = False)
+agent = Agent(env, "DQN_CONV", device, rendering = True)
 
 agent.model = pretrained_model
-agent.epsilon = 0.0
 info = None
 steps = 0
 
