@@ -246,6 +246,7 @@ class Agent():
         Returns:
             int: The action to be taken.
         """
+        print('this is self.lives:',self.lives)
         if info == None:
             return 1 # force fire action
         elif info['lives'] < self.lives:
