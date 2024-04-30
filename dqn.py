@@ -228,7 +228,7 @@ class Agent():
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
         self.loss_fn = nn.MSELoss()
         self.epsilon = 1.0 if not rendering else 0.0 # no need for epsilon greedy when rendering game play
-        self.epsilon_decay = 0.9
+        self.epsilon_decay = 0.98
         self.epsilon_minimum = 0.05
 
     def update_target_model(self):
