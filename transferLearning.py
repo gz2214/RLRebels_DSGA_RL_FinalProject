@@ -47,7 +47,10 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     for param in transferLearningLayer.parameters():
         param.requires_grad = True
     ## add model to agent
-    agent = Agent(env,'DQN_MLP',device)
+    if 'DQN_CONV' in pretrained_model_name:
+        agent = Agent(env,'DQN_CONV',device)
+    elif 'DQN_MLP' in pretrained_model_name:
+        agent = Agent(env, 'DQN_MLP', device)
     agent.model=nn.Sequential(pre_trained_model,transferLearningLayer)
     agent.model.to("cuda")
 
