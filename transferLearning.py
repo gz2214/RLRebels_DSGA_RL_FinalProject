@@ -39,7 +39,7 @@ def main(pretrained_model_name,atari_game_2,num_episodes):
     ## freeze other layers parameters so they do not change
 
     pre_trained_model=torch.load(f'{pretrained_model_name}.pth',map_location=device)
-    in_feat=pre_trained_model.fc2.out_features
+    in_feat=pre_trained_model.fc2.out_features if 'DQN_MLP' in pretrained_model_name else pre_trained_model.fc1.out_features
     for p in pre_trained_model.parameters():
         p.requires_grad=False
     ## add layer to pretrain model 
