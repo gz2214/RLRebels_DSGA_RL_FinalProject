@@ -29,6 +29,15 @@ info = None
 steps = 0
 
 for counter in range(500):
+    """
+    Function to test a pre-trained DQN model on the Breakout and Pong Atari environments.
+
+    This function initializes a pre-trained DQN model (either on Breakout or Atari). It runs the agent using actions determined by
+    the pre-trained model for a fixed number of steps (500 in this case) to evaluate its performance.
+
+    Returns:
+        None
+    """
 
     env.render()
     action = agent.select_action(state, info)
