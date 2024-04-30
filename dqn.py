@@ -89,6 +89,22 @@ class DQN_CONV(nn.Module):
         return x
 
 class ReplayBuffer():
+    """
+    A simple FIFO (first in, first out) buffer for storing experiences.
+
+    Attributes:
+        buffer_state (torch.Tensor): Buffer for storing states.
+        buffer_action (torch.Tensor): Buffer for storing actions.
+        buffer_reward (torch.Tensor): Buffer for storing rewards.
+        buffer_next_state (torch.Tensor): Buffer for storing next states.
+        buffer_done (torch.Tensor): Buffer for storing done flags.
+        capacity (int): Maximum number of transitions the buffer can hold.
+        device (torch.device): Device on which the buffer will be stored.
+
+    Args:
+        device (torch.device): The computation device, CPU or GPU.
+        capacity (int): The maximum size of the buffer.
+    """
     def __init__(self, device, capacity=10000):
         self.buffer_state = torch.empty((0,), dtype=torch.float32, device=device)
         self.buffer_action = torch.empty((0,), dtype=torch.float32, device=device)
@@ -99,6 +115,19 @@ class ReplayBuffer():
         self.device = device
 
     def add(self, state, action, reward, next_state, done):
+        """
+        Adds a single transition to the buffer. If the buffer is full, it removes the oldest transition to make space.
+
+        Args:
+            state (array-like or torch.Tensor): The state observed before taking the action.
+            action (int or torch.Tensor): The action taken in the state.
+            reward (float or torch.Tensor): The reward received after taking the action.
+            next_state (array-like or torch.Tensor): The next state reached after taking the action.
+            done (bool or torch.Tensor): A boolean indicating whether the episode ended after this transition.
+
+        Note:
+            This method does not return anything. It updates the internal state of the buffer to include the new transition.
+        """
         if len(self.buffer_state) >= self.capacity:
             # Remove the oldest data if at capacity
             self.buffer_state = self.buffer_state[1:]
@@ -115,6 +144,16 @@ class ReplayBuffer():
         self.buffer_done = torch.cat((self.buffer_done, torch.tensor([done], dtype=torch.float32, device=device)), dim=0)
 
     def sample(self, batch_size):
+        """
+        Samples a batch of transitions from the buffer uniformly at random.
+
+        Args:
+            batch_size (int): The number of transitions to sample.
+
+        Returns:
+            tuple of torch.Tensors: A tuple containing batches of states, actions, rewards, next_states, and dones.
+            Each element of the tuple is a tensor containing `batch_size` elements corresponding to the sampled transitions.
+        """
         # Make sure we do not sample more elements than we have
         max_index = self.buffer_state.size()[0]
         indices = torch.randint(0, max_index, (batch_size,), device=self.device)
@@ -133,10 +172,37 @@ class ReplayBuffer():
     
 
 class Agent():
+    """
+    Implements a Deep Q-Network (DQN) agent for reinforcement learning.
+
+    Attributes:
+        env (gym.Env): An instance of an OpenAI Gym environment.
+        num_actions (int): Number of possible actions in the environment's action space.
+        num_observations (tuple): Shape of the observation space from the environment.
+        lives (int): Number of lives the agent has, used for games with lives like Breakout.
+        device (torch.device): The device (CPU or GPU) on which tensors will be allocated.
+        model (torch.nn.Module): The current DQN model.
+        target_model (torch.nn.Module): The target DQN model for stable learning.
+        buffer (ReplayBuffer): Buffer to store transitions for experience replay.
+        alpha (float): Learning rate for the optimizer.
+        gamma (float): Discount factor for future rewards.
+        optimizer (torch.optim.Optimizer): Optimizer for learning the model's weights.
+        loss_fn (torch.nn.modules.loss): Loss function used for training.
+        epsilon (float): Epsilon value for epsilon-greedy action selection.
+        epsilon_decay (float): Decay rate for epsilon, reducing as training progresses.
+        epsilon_minimum (float): Minimum value that epsilon can reach.
+
+    Args:
+        env (gym.Env): The gym environment to interact with.
+        model_name (str): Identifier for selecting the model type.
+        device (torch.device): The computation device, CPU or GPU.
+        rendering (bool): Flag to indicate if the agent is for rendering (evaluation) or training.
+    """
     def __init__(self, env, model_name, device, rendering=False):
         self.env = env
         self.num_actions = self.env.action_space.n
         self.num_observations = self.env.observation_space.shape
+        self.lives = self.env.unwrapped.ale.lives()
         self.device = device
 
         # model setup
@@ -162,29 +228,54 @@ class Agent():
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.alpha)
         self.loss_fn = nn.MSELoss()
         self.epsilon = 1.0 if not rendering else 0.0 # no need for epsilon greedy when rendering game play
-        self.epsilon_decay = 0.96
+        self.epsilon_decay = 0.9
         self.epsilon_minimum = 0.05
 
     def update_target_model(self):
         self.target_model.load_state_dict(self.model.state_dict())
 
 
-    def select_action(self, state):
-        if random.random() < self.epsilon:
+    def select_action(self, state, info = None):
+        """
+        Selects an action based on the current state using an epsilon-greedy policy.
+        
+        Args:
+            state (array-like): The current state representation from the environment.
+            info (dict, optional): Additional information about the current state (e.g., remaining lives).
+        
+        Returns:
+            int: The action to be taken.
+        """
+        if info == None:
+            return 1 # force fire action
+        elif info['lives'] < self.lives:
+            self.lives = info['lives']
+            return 1 # force fire action
+        
+        elif random.random() < self.epsilon:
             return self.env.action_space.sample()  # Random action
+
+#         if random.random() < self.epsilon:
+#             return self.env.action_space.sample()  # Random action
         else:
             with torch.no_grad():
                 state = torch.tensor(state, dtype=torch.float32, device=self.device)
                 state = state.unsqueeze(0)
 #                 print('select action state', state.size())
                 q_values = self.model(state)
-                return torch.argmax(q_values)  # Action with the highest Q-value
+                return torch.argmax(q_values).item()  # Action with the highest Q-value
             
     def train(self, batch_size, target_update_freq):
-        # print("len_buffer:", len(self.buffer.buffer))
-        # print("target_update_freq:", target_update_freq)
-#         if self.buffer.__len__() < 10000:
-#             return np.inf, 0 
+        """
+        Trains the agent using batches of experience from the replay buffer.
+
+        Args:
+            batch_size (int): The size of the batch to train on.
+            target_update_freq (int): Frequency (in steps) at which the target network is updated.
+
+        Returns:
+            tuple: A tuple containing the loss of the training step and the maximum Q value.
+        """
         
         batch_state, batch_action, batch_reward, batch_next_state, batch_done = self.buffer.sample(batch_size)
 
@@ -210,9 +301,22 @@ class Agent():
         return loss.item(), torch.max(cur_q_values).item()
     
     def store_transition(self, state, action, reward, next_state, done):
+        """
+        Stores a transition in the replay buffer.
+
+        Args:
+            state (array-like): The state before the action was taken.
+            action (int): The action taken.
+            reward (float): The reward received after taking the action.
+            next_state (array-like): The state after the action was taken.
+            done (bool): A boolean flag indicating if the episode ended after the action.
+        """
         self.buffer.add(state, action, reward, next_state, done)
         
     def update_epsilon(self):
+        """
+        Updates the epsilon value used for the epsilon-greedy policy based on the decay rate.
+        """
         if self.epsilon > self.epsilon_minimum:
             self.epsilon *= self.epsilon_decay
         else:

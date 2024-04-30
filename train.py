@@ -48,6 +48,8 @@ def main(atari_game, model_name, num_episodes):
     for episode in range(num_episodes+warmup_ep): # warmup with the first ten episodes
         #print("episode:", episode)
         state = env.reset()[0]
+        info = None
+        prev_state = np.zeros(state.shape)
         start = time.time()
         # state = preProcess(state)  # Preprocess the initial state
         done = False
@@ -62,13 +64,14 @@ def main(atari_game, model_name, num_episodes):
             step_per_ep += 1
             total_steps += 1
             # print("while not done:", state.shape)
-            action = agent.select_action(state)
+            action = agent.select_action(state-prev_state, info)
             # print("action:", action)
             next_state, reward, done, truncated, info = env.step(action)
             # next_state = preProcess(next_state)  # Preprocess the next state
             agent.store_transition(state, action, reward, next_state, done)
             # print("next state:", next_state.shape)
             episode_reward += reward
+            prev_state = state
             state = next_state
             # print("update to new state", state.shape)
             
@@ -85,7 +88,7 @@ def main(atari_game, model_name, num_episodes):
             loss=[l for l in loss if l !=float('inf')]
             mean_loss=sum(loss)/len(loss)
         
-            if episode >= 200 and episode % 100 == 0:
+            if episode >= 200 and episode % 50 == 0:
                 agent.update_epsilon()
 
             if mean_loss < min_loss:
